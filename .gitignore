@@ -58,3 +58,6 @@ target/
 
 # Private stats files
 stats*csv
+
+# Temp files
+*.*~
