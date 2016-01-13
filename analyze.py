@@ -1,8 +1,10 @@
 #!/usr/bin/python
 
-import sys, csv
+import sys, csv, re, pprint, math
 
 from collections import namedtuple, Counter
+
+RE_ALL_NUM = re.compile(r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?')
 
 Row = namedtuple('Row', ('date','sleep','wakeup','physical_morning','physical_day','physical_evening','mood_morning','mood_day','mood_evening','food','drink','coffee','tea','soda'))
 
@@ -22,6 +24,10 @@ def read_file(fn):
 def count_dim(rows, dim):
     return Counter(getattr(r, dim) for r in rows)
 
+def total_num(val):
+    nums = RE_ALL_NUM.findall(val)
+    return sum(float(x[0]) for x in nums)
+
 def stats(d):
     s = sum(d)
     avg = s/len(d)
@@ -30,6 +36,7 @@ def stats(d):
 
     s2 = sum((i-avg)*(i-avg) for i in d)
     var = s2/len(d)
+    std = math.sqrt(var)
 
     return {
         'total': s,
@@ -37,6 +44,7 @@ def stats(d):
         'max' : max_,
         'min' : min_,
         'var' : var,
+        'std' : std
     }
 
 def summarize(rows):
@@ -47,6 +55,9 @@ def summarize(rows):
     cnt_m_d = count_dim(rows, 'mood_day')
     cnt_m_e = count_dim(rows, 'mood_evening')
     sleep_stats = stats([sleep_duration(r.sleep, r.wakeup) for r in rows])
+    coffee_stats = stats([float(r.coffee) for r in rows])
+    drink_stats = stats([total_num(r.drink) for r in rows])
+
     return {
         'p_m': cnt_p_m,
         'p_d': cnt_p_d,
@@ -55,6 +66,8 @@ def summarize(rows):
         'm_d': cnt_m_d,
         'm_e': cnt_m_e,
         'sleep_stats': sleep_stats,
+        'coffee_stats': coffee_stats,
+        'drink_stats': drink_stats,
     }
 
 if __name__ == '__main__':
@@ -64,5 +77,6 @@ if __name__ == '__main__':
 
     fn = sys.argv[1]
     rows = read_file(fn)
+    summary = summarize(rows)
 
-    print summarize(rows)
+    pprint.pprint(summary, width=2)
