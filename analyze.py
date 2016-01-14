@@ -28,6 +28,18 @@ def total_num(val):
     nums = RE_ALL_NUM.findall(val)
     return sum(float(x[0]) for x in nums)
 
+def total_map(maps):
+    c = Counter()
+    for m in maps:
+        c.update(to_num_map(m))
+    return c
+
+def to_num_map(m):
+    return dict((k, float(v)) for k, v in m.iteritems())
+
+def num_map(row):
+    return dict(reversed(p.strip('-').strip().split(' ', 1)) for p in row.split("\n") if len(p) > 0)
+
 def stats(d):
     s = sum(d)
     avg = s/len(d)
@@ -44,7 +56,7 @@ def stats(d):
         'max' : max_,
         'min' : min_,
         'var' : var,
-        'std' : std
+        'std' : std,
     }
 
 def summarize(rows):
@@ -57,6 +69,7 @@ def summarize(rows):
     sleep_stats = stats([sleep_duration(r.sleep, r.wakeup) for r in rows])
     coffee_stats = stats([float(r.coffee) for r in rows])
     drink_stats = stats([total_num(r.drink) for r in rows])
+    drink_details = total_map([num_map(r.drink) for r in rows])
 
     return {
         'p_m': cnt_p_m,
@@ -68,6 +81,7 @@ def summarize(rows):
         'sleep_stats': sleep_stats,
         'coffee_stats': coffee_stats,
         'drink_stats': drink_stats,
+        'drink_details': drink_details,
     }
 
 if __name__ == '__main__':
