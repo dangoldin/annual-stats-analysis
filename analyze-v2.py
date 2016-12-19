@@ -19,6 +19,7 @@ def read_file(fn):
     return pd.read_csv(fn,
         dtype=dtype_cols,
         parse_dates=['Date',],
+        index_col=0,
         low_memory=False)
 
 def sleep_duration(row):
@@ -28,8 +29,21 @@ def sleep_duration(row):
         return wakeup - sleep
     return wakeup - (sleep - 12.0)
 
+def sum_all_nums(field):
+    # Old but easier to debug the new one + test for nulls
+    # return lambda x: sum(float(n[0]) for n in RE_ALL_NUM.findall(x[field]))
+    def sum_row_vals(row):
+        if pd.notnull(row[field]):
+            nums = RE_ALL_NUM.findall(row[field])
+            return sum(float(x[0]) for x in nums)
+        else:
+            return 0.0
+    return sum_row_vals
+
 def add_cols(d):
-    d['SleepDuration'] = d.apply(sleep_duration,axis=1)
+    d['SleepDuration'] = d.apply(sleep_duration, axis=1)
+    d['NumDrinks'] = d.apply(sum_all_nums('Drinks'), axis=1)
+    # Just in case
     return d
 
 if __name__ == '__main__':
@@ -43,9 +57,14 @@ if __name__ == '__main__':
 
     print d.describe()
 
-    plt.figure()
-    d.plot()
-    plt.show()
+    # plt.figure()
+    # d.plot()
+    # plt.show()
+
+    print d.groupby(d.index.week).sum()
+
+    # plt.figure()
+
 
     # print d
 
