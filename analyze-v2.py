@@ -42,7 +42,7 @@ def sum_all_nums(field):
 
 def add_cols(d):
     d['SleepDuration'] = d.apply(sleep_duration, axis=1)
-    d['NumDrinks'] = d.apply(sum_all_nums('Drinks'), axis=1)
+    d['Alcohol'] = d.apply(sum_all_nums('Drinks'), axis=1)
     # Just in case
     return d
 
@@ -61,11 +61,18 @@ if __name__ == '__main__':
     # d.plot()
     # plt.show()
 
-    print d.groupby(d.index.week).sum()
+    print d
 
-    # plt.figure()
+    by_week = d.groupby(d.index.week).sum()
 
+    print by_week.describe()
 
-    # print d
+    plt.figure()
+    by_week.boxplot(column=['Coffee', 'Tea', 'Alcohol'])
+    plt.show()
+
+    plt.figure()
+    d.boxplot(column=['SleepDuration'])
+    plt.show()
 
     # pdb.set_trace()
