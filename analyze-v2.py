@@ -40,10 +40,28 @@ def sum_all_nums(field):
             return 0.0
     return sum_row_vals
 
+def extract_hashtag(field, hashtag):
+    def get_hashtag_contents(row):
+        if pd.notnull(row[field]):
+            out = []
+            pieces = row[field].split("\n")
+            for piece in pieces:
+                if hashtag in piece:
+                    piece = piece.replace(hashtag, '').replace('- ', '').strip()
+                    out.extend(piece.split(", "))
+            return out
+        else:
+            return []
+    return get_hashtag_contents
+
 def add_cols(d):
     d['SleepDuration'] = d.apply(sleep_duration, axis=1)
     d['Alcohol'] = d.apply(sum_all_nums('Drinks'), axis=1)
-    # Just in case
+    d['Breakfast'] = d.apply(extract_hashtag('Food', '#breakfast'), axis=1)
+    d['Lunch'] = d.apply(extract_hashtag('Food', '#lunch'), axis=1)
+    d['Dinner'] = d.apply(extract_hashtag('Food', '#dinner'), axis=1)
+    d['Snack'] = d.apply(extract_hashtag('Food', '#snack'), axis=1)
+    # Return in case it's being assigned
     return d
 
 if __name__ == '__main__':
@@ -55,13 +73,13 @@ if __name__ == '__main__':
     d = read_file(fn)
     d = add_cols(d)
 
-    print d.describe()
+    print d
 
     # plt.figure()
     # d.plot()
     # plt.show()
 
-    print d
+    print d.describe()
 
     by_week = d.groupby(d.index.week).sum()
 
