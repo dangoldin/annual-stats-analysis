@@ -5,6 +5,11 @@ import sys, re
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# import matplotlib
+# matplotlib.style.use('ggplot')
+
+import wordcloud as wc
+
 import pdb
 
 RE_ALL_NUM = re.compile(r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?')
@@ -46,7 +51,10 @@ def extract_hashtag(field, hashtag):
             out = []
             pieces = row[field].split("\n")
             for piece in pieces:
-                if hashtag in piece:
+                if hashtag is None: # Just take everything
+                    piece = piece.replace('- ', '').strip()
+                    out.extend(piece.split(", "))
+                elif hashtag in piece:
                     piece = piece.replace(hashtag, '').replace('- ', '').strip()
                     out.extend(piece.split(", "))
             return out
@@ -61,8 +69,20 @@ def add_cols(d):
     d['Lunch'] = d.apply(extract_hashtag('Food', '#lunch'), axis=1)
     d['Dinner'] = d.apply(extract_hashtag('Food', '#dinner'), axis=1)
     d['Snack'] = d.apply(extract_hashtag('Food', '#snack'), axis=1)
+    d['DrinksList'] = d.apply(extract_hashtag('Drinks', None), axis=1)
     # Return in case it's being assigned
     return d
+
+def generate_wordcloud(d, column):
+    text = " ".join([" ".join(x) for x in d[column]]).lower()
+
+    wordcloud = wc.WordCloud(stopwords=None, mask=None,
+        width=1000, height=1000, font_path=None,
+        margin=10, relative_scaling=0.0,
+        color_func=wc.random_color_func,
+        background_color='black').generate(text)
+    image = wordcloud.to_image()
+    image.save('wordcloud-'+column+'.png', format='png')
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -85,12 +105,19 @@ if __name__ == '__main__':
 
     print by_week.describe()
 
-    plt.figure()
-    by_week.boxplot(column=['Coffee', 'Tea', 'Alcohol'])
-    plt.show()
+    if False:
+        plt.figure()
+        by_week.boxplot(column=['Coffee', 'Tea', 'Alcohol'])
+        plt.show()
 
-    plt.figure()
-    d.boxplot(column=['SleepDuration'])
-    plt.show()
+        plt.figure()
+        d.boxplot(column=['SleepDuration'])
+        plt.show()
+
+    generate_wordcloud(d, 'Breakfast')
+    generate_wordcloud(d, 'Lunch')
+    generate_wordcloud(d, 'Dinner')
+    generate_wordcloud(d, 'Snack')
+    generate_wordcloud(d, 'DrinksList')
 
     # pdb.set_trace()
