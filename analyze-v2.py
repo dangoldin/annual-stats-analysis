@@ -1,16 +1,16 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import sys, re
 
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# import matplotlib
-# matplotlib.style.use('ggplot')
+#import matplotlib
+#matplotlib.style.use('ggplot')
 
 import wordcloud as wc
 
-import pdb
+import pdb # pdb.set_trace() when needed
 
 RE_ALL_NUM = re.compile(r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?')
 
@@ -105,19 +105,18 @@ if __name__ == '__main__':
 
     print by_week.describe()
 
-    if False:
-        plt.figure()
-        by_week.boxplot(column=['Coffee', 'Tea', 'Alcohol'])
-        plt.show()
+    plt.figure()
+    by_week.boxplot(column=['Coffee', 'Tea', 'Alcohol'])
+    plt.savefig("coffee-tea-alcohol.png")
+    plt.close()
 
-        plt.figure()
-        d.boxplot(column=['SleepDuration'])
-        plt.show()
+    plt.figure()
+    d.boxplot(column=['SleepDuration'])
+    plt.savefig("sleep-duration.png")
+    plt.close()
 
     generate_wordcloud(d, 'Breakfast')
     generate_wordcloud(d, 'Lunch')
     generate_wordcloud(d, 'Dinner')
     generate_wordcloud(d, 'Snack')
     generate_wordcloud(d, 'DrinksList')
-
-    # pdb.set_trace()
