@@ -4,6 +4,7 @@ import sys, re
 
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 import matplotlib
 matplotlib.style.use('ggplot')
@@ -82,7 +83,8 @@ def generate_wordcloud(d, column):
         color_func=wc.random_color_func,
         background_color='black').generate(text)
     image = wordcloud.to_image()
-    image.save('wordcloud-'+column+'.png', format='png')
+    fn = ('wordcloud-' + column + '.png').lower()
+    image.save(fn, format='png')
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -95,10 +97,6 @@ if __name__ == '__main__':
 
     print d
 
-    # plt.figure()
-    # d.plot()
-    # plt.show()
-
     print d.describe()
 
     by_week = d.groupby(d.index.week).sum()
@@ -107,13 +105,44 @@ if __name__ == '__main__':
 
     plt.figure()
     by_week.boxplot(column=['Coffee', 'Tea', 'Alcohol'])
-    plt.savefig("coffee-tea-alcohol.png")
+    plt.savefig('coffee-tea-alcohol.png')
     plt.close()
 
     plt.figure()
     d.boxplot(column=['SleepDuration'])
-    plt.savefig("sleep-duration.png")
+    plt.savefig('sleep-duration.png')
     plt.close()
+
+    plt.figure()
+    d.plot(kind='scatter', x='Alcohol', y='SleepDuration')
+    plt.savefig('sleep-vs-alcohol.png')
+    plt.close()
+
+    d['AlcoholLag'] = d['Alcohol'].shift()
+
+    plt.figure()
+    # ax = d.plot(kind='scatter', x='AlcoholLag', y='SleepDuration')
+    # plt.savefig('sleep-vs-alcohol-lag.png')
+    # plt.close()
+
+    f = d.dropna(axis=0, how='any', subset=['SleepDuration', 'AlcoholLag'])
+
+    ax = f.plot(kind='scatter', x='AlcoholLag', y='SleepDuration')
+    z = np.polyfit(x=f['AlcoholLag'], y=f['SleepDuration'], deg=1, full=True)
+    p = np.poly1d(z[0])
+    f['fit'] = p(f['AlcoholLag'])
+    f.set_index('AlcoholLag', inplace=True)
+    f['fit'].sort_index(ascending=False).plot(ax=ax)
+    plt.gca().invert_xaxis()
+    plt.savefig('sleep-vs-alcohol-lag.png')
+    plt.close()
+
+    print z
+    print p
+
+    # pdb.set_trace()
+
+    exit()
 
     generate_wordcloud(d, 'Breakfast')
     generate_wordcloud(d, 'Lunch')
