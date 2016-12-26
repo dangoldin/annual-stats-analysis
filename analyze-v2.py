@@ -86,6 +86,38 @@ def generate_wordcloud(d, column):
     fn = ('wordcloud-' + column + '.png').lower()
     image.save(fn, format='png')
 
+def do_fit_and_plot(d, columns):
+    if len(columns) != 2:
+        print 'Need to pass in two columns for now y, x'
+        return
+
+    y, x = columns
+
+    print 'Fitting ', y, 'vs', x
+
+    f = d.dropna(axis=0, how='any', subset=columns)
+
+    plt.figure()
+    ax = f.plot(kind='scatter', x=x, y=y)
+    z = np.polyfit(x=f[x], y=f[y], deg=1, full=True)
+    p = np.poly1d(z[0])
+    f['fit'] = p(f[x])
+    f.set_index(x, inplace=True)
+    f['fit'].sort_index(ascending=False).plot(ax=ax)
+    plt.gca().invert_xaxis()
+    plt.savefig((x + '-vs-' + y + '.png').lower())
+    plt.close()
+
+    print z
+    print p
+
+    y_mean = np.sum(f['fit'])/len(f['fit'])
+    ssr = np.sum((y_mean - f['fit'])**2)
+    sst = np.sum((f[y] - f['fit'])**2)
+    rsq = ssr / sst
+
+    print rsq
+
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print 'Specify a filename'
@@ -120,27 +152,10 @@ if __name__ == '__main__':
 
     d['AlcoholLag'] = d['Alcohol'].shift()
 
-    plt.figure()
-    # ax = d.plot(kind='scatter', x='AlcoholLag', y='SleepDuration')
-    # plt.savefig('sleep-vs-alcohol-lag.png')
-    # plt.close()
-
-    f = d.dropna(axis=0, how='any', subset=['SleepDuration', 'AlcoholLag'])
-
-    ax = f.plot(kind='scatter', x='AlcoholLag', y='SleepDuration')
-    z = np.polyfit(x=f['AlcoholLag'], y=f['SleepDuration'], deg=1, full=True)
-    p = np.poly1d(z[0])
-    f['fit'] = p(f['AlcoholLag'])
-    f.set_index('AlcoholLag', inplace=True)
-    f['fit'].sort_index(ascending=False).plot(ax=ax)
-    plt.gca().invert_xaxis()
-    plt.savefig('sleep-vs-alcohol-lag.png')
-    plt.close()
-
-    print z
-    print p
-
     # pdb.set_trace()
+
+    do_fit_and_plot(d, ['SleepDuration', 'Alcohol'])
+    do_fit_and_plot(d, ['SleepDuration', 'AlcoholLag'])
 
     exit()
 
