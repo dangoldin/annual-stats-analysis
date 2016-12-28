@@ -12,3 +12,4 @@ python analyze-v2.py stats2016.csv
 
 ## TODOs:
 - Correlations with the moods
+- Duplicate text based on frequency

@@ -15,19 +15,9 @@ import pdb # pdb.set_trace() when needed
 
 RE_ALL_NUM = re.compile(r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?')
 
-def read_file(fn):
-    dtype_cols = {
-        'Bed' : 'float64',
-        'Wakeup' : 'float64',
-        'Coffee' : 'float64',
-        'Tea' : 'float64',
-    }
-    return pd.read_csv(fn,
-        dtype=dtype_cols,
-        parse_dates=['Date',],
-        index_col=0,
-        low_memory=False)
+# Utility transformation functions
 
+# Derive total hour slept by handling AM vs PM
 def sleep_duration(row):
     sleep = row['Bed']
     wakeup = row['Wakeup']
@@ -35,6 +25,7 @@ def sleep_duration(row):
         return wakeup - sleep
     return wakeup - (sleep - 12.0)
 
+# Just a sum of every number found in a text blob, 0 otherwise
 def sum_all_nums(field):
     # Old but easier to debug the new one + test for nulls
     # return lambda x: sum(float(n[0]) for n in RE_ALL_NUM.findall(x[field]))
@@ -46,6 +37,8 @@ def sum_all_nums(field):
             return 0.0
     return sum_row_vals
 
+# Filter a list to only keep text matching a given hashtag
+# IF None is passed in it will take everything
 def extract_hashtag(field, hashtag):
     def get_hashtag_contents(row):
         if pd.notnull(row[field]):
@@ -63,60 +56,125 @@ def extract_hashtag(field, hashtag):
             return []
     return get_hashtag_contents
 
-def add_cols(d):
-    d['SleepDuration'] = d.apply(sleep_duration, axis=1)
-    d['Alcohol'] = d.apply(sum_all_nums('Drinks'), axis=1)
-    d['Breakfast'] = d.apply(extract_hashtag('Food', '#breakfast'), axis=1)
-    d['Lunch'] = d.apply(extract_hashtag('Food', '#lunch'), axis=1)
-    d['Dinner'] = d.apply(extract_hashtag('Food', '#dinner'), axis=1)
-    d['Snack'] = d.apply(extract_hashtag('Food', '#snack'), axis=1)
-    d['DrinksList'] = d.apply(extract_hashtag('Drinks', None), axis=1)
-    # Return in case it's being assigned
-    return d
+class Analyze:
+    def __init__(self, fn):
+        self.fn = fn
 
-def generate_wordcloud(d, column):
-    text = " ".join([" ".join(x) for x in d[column]]).lower()
+    def read_file(self):
+        dtype_cols = {
+            'Bed' : 'float64',
+            'Wakeup' : 'float64',
+            'Coffee' : 'float64',
+            'Tea' : 'float64',
+        }
+        self.d = pd.read_csv(fn,
+            dtype=dtype_cols,
+            parse_dates=['Date',],
+            index_col=0,
+            low_memory=False)
 
-    wordcloud = wc.WordCloud(stopwords=None, mask=None,
-        width=1000, height=1000, font_path=None,
-        margin=10, relative_scaling=0.0,
-        color_func=wc.random_color_func,
-        background_color='black').generate(text)
-    image = wordcloud.to_image()
-    fn = ('wordcloud-' + column + '.png').lower()
-    image.save(fn, format='png')
+    def add_cols(self):
+        d = self.d
 
-def do_fit_and_plot(d, columns):
-    if len(columns) != 2:
-        print 'Need to pass in two columns for now y, x'
-        return
+        d['SleepDuration'] = d.apply(sleep_duration, axis=1)
+        d['Alcohol'] = d.apply(sum_all_nums('Drinks'), axis=1)
+        d['Breakfast'] = d.apply(extract_hashtag('Food', '#breakfast'), axis=1)
+        d['Lunch'] = d.apply(extract_hashtag('Food', '#lunch'), axis=1)
+        d['Dinner'] = d.apply(extract_hashtag('Food', '#dinner'), axis=1)
+        d['Snack'] = d.apply(extract_hashtag('Food', '#snack'), axis=1)
+        d['DrinksList'] = d.apply(extract_hashtag('Drinks', None), axis=1)
+        d['AlcoholLag'] = d['Alcohol'].shift()
 
-    y, x = columns
+    # Various plotting functions
+    def generate_wordcloud(self, column):
+        d = self.d
 
-    print 'Fitting ', y, 'vs', x
+        text = " ".join([" ".join(x) for x in d[column]]).lower()
 
-    f = d.dropna(axis=0, how='any', subset=columns)
+        wordcloud = wc.WordCloud(stopwords=None, mask=None,
+            width=1000, height=1000, font_path=None,
+            margin=10, relative_scaling=0.0,
+            color_func=wc.random_color_func,
+            background_color='black').generate(text)
+        image = wordcloud.to_image()
+        fn = ('wordcloud-' + column + '.png').lower()
+        image.save(fn, format='png')
 
-    plt.figure()
-    ax = f.plot(kind='scatter', x=x, y=y)
-    z = np.polyfit(x=f[x], y=f[y], deg=1, full=True)
-    p = np.poly1d(z[0])
-    f['fit'] = p(f[x])
-    f.set_index(x, inplace=True)
-    f['fit'].sort_index(ascending=False).plot(ax=ax)
-    plt.gca().invert_xaxis()
-    plt.savefig((x + '-vs-' + y + '.png').lower())
-    plt.close()
+    def do_fit_and_plot(self, columns):
+        d = self.d
 
-    print z
-    print p
+        if len(columns) != 2:
+            print 'Need to pass in two columns for now y, x'
+            return
 
-    y_mean = np.sum(f['fit'])/len(f['fit'])
-    ssr = np.sum((y_mean - f['fit'])**2)
-    sst = np.sum((f[y] - f['fit'])**2)
-    rsq = ssr / sst
+        y, x = columns
 
-    print rsq
+        print 'Fitting ', y, 'vs', x
+
+        f = d.dropna(axis=0, how='any', subset=columns)
+
+        plt.figure()
+        ax = f.plot(kind='scatter', x=x, y=y)
+        z = np.polyfit(x=f[x], y=f[y], deg=1, full=True)
+        p = np.poly1d(z[0])
+        f['fit'] = p(f[x])
+        f.set_index(x, inplace=True)
+        f['fit'].sort_index(ascending=False).plot(ax=ax)
+        plt.gca().invert_xaxis()
+        plt.savefig((x + '-vs-' + y + '.png').lower())
+        plt.close()
+
+        print z
+        print p
+
+        y_mean = np.sum(f['fit'])/len(f['fit'])
+        ssr = np.sum((y_mean - f['fit'])**2)
+        sst = np.sum((f[y] - f['fit'])**2)
+        rsq = ssr / sst
+
+        print rsq
+
+    def plot_weekly(self):
+        by_week = self.d.groupby(self.d.index.week).sum()
+        print by_week.describe()
+        plt.figure()
+        by_week.boxplot(column=['Coffee', 'Tea', 'Alcohol'])
+        plt.savefig('coffee-tea-alcohol.png')
+        plt.close()
+
+    def plot(self):
+        self.plot_weekly()
+
+        plt.figure()
+        self.d.boxplot(column=['SleepDuration'])
+        plt.savefig('sleep-duration.png')
+        plt.close()
+
+        plt.figure()
+        self.d.plot(kind='scatter', x='Alcohol', y='SleepDuration')
+        plt.savefig('sleep-vs-alcohol.png')
+        plt.close()
+
+        # pdb.set_trace()
+
+        self.do_fit_and_plot(['SleepDuration', 'Alcohol'])
+        self.do_fit_and_plot(['SleepDuration', 'AlcoholLag'])
+
+        self.generate_wordcloud('Breakfast')
+        self.generate_wordcloud('Lunch')
+        self.generate_wordcloud('Dinner')
+        self.generate_wordcloud('Snack')
+        self.generate_wordcloud('DrinksList')
+
+    def run(self):
+        self.read_file()
+
+        print self.d
+        print self.d.describe()
+
+        self.add_cols()
+
+        self.plot()
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -124,43 +182,5 @@ if __name__ == '__main__':
         exit(1)
 
     fn = sys.argv[1]
-    d = read_file(fn)
-    d = add_cols(d)
-
-    print d
-
-    print d.describe()
-
-    by_week = d.groupby(d.index.week).sum()
-
-    print by_week.describe()
-
-    plt.figure()
-    by_week.boxplot(column=['Coffee', 'Tea', 'Alcohol'])
-    plt.savefig('coffee-tea-alcohol.png')
-    plt.close()
-
-    plt.figure()
-    d.boxplot(column=['SleepDuration'])
-    plt.savefig('sleep-duration.png')
-    plt.close()
-
-    plt.figure()
-    d.plot(kind='scatter', x='Alcohol', y='SleepDuration')
-    plt.savefig('sleep-vs-alcohol.png')
-    plt.close()
-
-    d['AlcoholLag'] = d['Alcohol'].shift()
-
-    # pdb.set_trace()
-
-    do_fit_and_plot(d, ['SleepDuration', 'Alcohol'])
-    do_fit_and_plot(d, ['SleepDuration', 'AlcoholLag'])
-
-    exit()
-
-    generate_wordcloud(d, 'Breakfast')
-    generate_wordcloud(d, 'Lunch')
-    generate_wordcloud(d, 'Dinner')
-    generate_wordcloud(d, 'Snack')
-    generate_wordcloud(d, 'DrinksList')
+    a = Analyze(fn)
+    a.run()
