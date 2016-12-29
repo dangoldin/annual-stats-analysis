@@ -14,6 +14,7 @@ import wordcloud as wc
 import pdb # pdb.set_trace() when needed
 
 RE_ALL_NUM = re.compile(r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?')
+RE_START_INT = re.compile(r'^\d+') # Purposefully don't handle decimals
 
 # Utility transformation functions
 
@@ -45,12 +46,20 @@ def extract_hashtag(field, hashtag):
             out = []
             pieces = row[field].split("\n")
             for piece in pieces:
+                piece_clean = ''
                 if hashtag is None: # Just take everything
-                    piece = piece.replace('- ', '').strip()
-                    out.extend(piece.split(", "))
+                    piece_clean = piece.replace('- ', '').strip()
                 elif hashtag in piece:
-                    piece = piece.replace(hashtag, '').replace('- ', '').strip()
-                    out.extend(piece.split(", "))
+                    piece_clean = piece.replace(hashtag, '').replace('- ', '').strip()
+                items = [x.strip() for x in piece_clean.split(", ")]
+                # Add multiple times
+                for item in items:
+                    nums = RE_START_INT.findall(item)
+                    nums = [int(x) for x in nums]
+                    cnt = 1
+                    if len(nums) > 0:
+                        cnt = nums[0]
+                    out.extend((RE_START_INT.sub('', item).strip(),) * cnt)
             return out
         else:
             return []
