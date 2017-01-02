@@ -12,9 +12,7 @@ There's a sample file (sample-stats.csv) in this repo that has the appropriate c
 
 |Date|Bed|Wakeup|MoodMorning|MoodDay|MoodEvening|PhysicalMorning|PhysicalDay|PhysicalEvening|Food|Drinks|Coffee|Tea|Soda|
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-1/1/2015|2|10|Congested|Good|Good|Lazy|Good|Good|"- Bagel + cream cheese + lox #breakfast
-- Turkey sliders, salad #lunch
-- Salad, beans, chickpeas, corn, turkey bacon, cheese #dinner"|- 1 beer|1|1|
+1/1/2015|2|10|Congested|Good|Good|Lazy|Good|Good|<ul><li>Bagel + cream cheese + lox #breakfast</li><li>Turkey sliders, salad #lunch</li><li>Salad, beans, chickpeas, corn, turkey bacon, cheese #dinner</li></ul>|- 1 beer|1|1|
 
 ## TODOs:
-- Correlations with the moods
+- Better analysis of the moods (viz + correlations)
