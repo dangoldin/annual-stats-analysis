@@ -87,6 +87,7 @@ class Analyze:
 
         d['SleepDuration'] = d.apply(sleep_duration, axis=1)
         d['Alcohol'] = d.apply(sum_all_nums('Drinks'), axis=1)
+        d['Sodas'] = d.apply(sum_all_nums('Soda'), axis=1)
         d['Breakfast'] = d.apply(extract_hashtag('Food', '#breakfast'), axis=1)
         d['Lunch'] = d.apply(extract_hashtag('Food', '#lunch'), axis=1)
         d['Dinner'] = d.apply(extract_hashtag('Food', '#dinner'), axis=1)
@@ -147,8 +148,8 @@ class Analyze:
         by_week = self.d.groupby(self.d.index.week).sum()
         print by_week.describe()
         plt.figure()
-        by_week.boxplot(column=['Coffee', 'Tea', 'Alcohol'])
-        plt.savefig('coffee-tea-alcohol.png')
+        by_week.boxplot(column=['Coffee', 'Tea', 'Alcohol', 'Sodas'])
+        plt.savefig('coffee-tea-alcohol-soda-weekly.png')
         plt.close()
 
     def plot(self):
@@ -157,6 +158,11 @@ class Analyze:
         plt.figure()
         self.d.boxplot(column=['SleepDuration'])
         plt.savefig('sleep-duration.png')
+        plt.close()
+
+        plt.figure()
+        self.d.boxplot(column=['Coffee', 'Tea', 'Alcohol', 'Sodas'])
+        plt.savefig('coffee-tea-alcohol-soda-daily.png')
         plt.close()
 
         plt.figure()
