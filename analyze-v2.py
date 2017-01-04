@@ -65,6 +65,7 @@ def extract_hashtag(field, hashtag):
             return []
     return get_hashtag_contents
 
+
 class Analyze:
     def __init__(self, fn):
         self.fn = fn
@@ -170,16 +171,11 @@ class Analyze:
         plt.savefig('sleep-vs-alcohol.png')
         plt.close()
 
-        # pdb.set_trace()
-
         self.do_fit_and_plot(['SleepDuration', 'Alcohol'])
         self.do_fit_and_plot(['SleepDuration', 'AlcoholLag'])
 
-        self.generate_wordcloud('Breakfast')
-        self.generate_wordcloud('Lunch')
-        self.generate_wordcloud('Dinner')
-        self.generate_wordcloud('Snack')
-        self.generate_wordcloud('DrinksList')
+        for col in ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'DrinksList']:
+            self.generate_wordcloud(col)
 
     def run(self):
         self.read_file()
