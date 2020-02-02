@@ -58,6 +58,10 @@ target/
 
 # Private stats files
 stats*csv
+*png
 
 # Temp files
 *.*~
+
+# IDE files
+.vscode

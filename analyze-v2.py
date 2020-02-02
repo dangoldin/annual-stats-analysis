@@ -22,9 +22,7 @@ RE_START_INT = re.compile(r'^\d+') # Purposefully don't handle decimals
 def sleep_duration(row):
     sleep = row['Bed']
     wakeup = row['Wakeup']
-    if sleep < wakeup:
-        return wakeup - sleep
-    return wakeup - (sleep - 12.0)
+    return (wakeup - sleep).seconds / 3600.0
 
 # Just a sum of every number found in a text blob, 0 otherwise
 def sum_all_nums(field):
@@ -60,26 +58,31 @@ def extract_hashtag(field, hashtag):
                     if len(nums) > 0:
                         cnt = nums[0]
                     out.extend((RE_START_INT.sub('', item).strip(),) * cnt)
-            return out
+            return [o.strip().lower() for o in out if o != '']
         else:
             return []
     return get_hashtag_contents
 
+def count_values(field, value):
+    def get_value_counts(row):
+        total = 0.0
+        for piece in row[field]:
+            if value in piece:
+                nums = RE_ALL_NUM.findall(piece)
+                if len(nums):
+                    total += float(nums[0][0])
+                else:
+                    total += 1.0
+        return total
+    return get_value_counts
 
 class Analyze:
     def __init__(self, fn):
         self.fn = fn
 
     def read_file(self):
-        dtype_cols = {
-            'Bed' : 'float64',
-            'Wakeup' : 'float64',
-            'Coffee' : 'float64',
-            'Tea' : 'float64',
-        }
         self.d = pd.read_csv(fn,
-            dtype=dtype_cols,
-            parse_dates=['Date',],
+            parse_dates=['Date', 'Bed', 'Wakeup'],
             index_col=0,
             low_memory=False)
 
@@ -87,20 +90,33 @@ class Analyze:
         d = self.d
 
         d['SleepDuration'] = d.apply(sleep_duration, axis=1)
-        d['Alcohol'] = d.apply(sum_all_nums('Drinks'), axis=1)
-        d['Sodas'] = d.apply(sum_all_nums('Soda'), axis=1)
         d['Breakfast'] = d.apply(extract_hashtag('Food', '#breakfast'), axis=1)
         d['Lunch'] = d.apply(extract_hashtag('Food', '#lunch'), axis=1)
         d['Dinner'] = d.apply(extract_hashtag('Food', '#dinner'), axis=1)
         d['Snack'] = d.apply(extract_hashtag('Food', '#snack'), axis=1)
         d['DrinksList'] = d.apply(extract_hashtag('Drinks', None), axis=1)
+
+        d['Coffee'] = d.apply(count_values('DrinksList', 'coffee'), axis=1)
+        d['Tea'] = d.apply(count_values('DrinksList', 'tea'), axis=1)
+
+        d['Coke'] = d.apply(count_values('DrinksList', 'coke'), axis=1)
+
+        d['Beer'] = d.apply(count_values('DrinksList', 'beer'), axis=1)
+        d['Wine'] = d.apply(count_values('DrinksList', 'wine'), axis=1)
+        d['Cocktail'] = d.apply(count_values('DrinksList', 'cocktail'), axis=1)
+        d['Alcohol'] = d['Beer'] + d['Wine'] + d['Cocktail']
         d['AlcoholLag'] = d['Alcohol'].shift()
 
     # Various plotting functions
     def generate_wordcloud(self, column):
         d = self.d
 
-        text = " ".join([" ".join(x) for x in d[column]]).lower()
+        # Strip out numbers and extra spaces
+        text = " ".join([" ".join(x) for x in d[column]]).lower().replace('.', ' ')
+        text = re.sub('\d+',' ',text)
+        text = re.sub('\s+',' ',text)
+
+        text = " ".join(sorted(text.split(" ")))
 
         wordcloud = wc.WordCloud(stopwords=None, mask=None,
             width=1000, height=1000, font_path=None,
@@ -115,12 +131,12 @@ class Analyze:
         d = self.d
 
         if len(columns) != 2:
-            print 'Need to pass in two columns for now y, x'
+            print('Need to pass in two columns for now y, x')
             return
 
         y, x = columns
 
-        print 'Fitting ', y, 'vs', x
+        print('Fitting ', y, 'vs', x)
 
         f = d.dropna(axis=0, how='any', subset=columns)
 
@@ -135,22 +151,22 @@ class Analyze:
         plt.savefig((x + '-vs-' + y + '.png').lower())
         plt.close()
 
-        print z
-        print p
+        print(z)
+        print(p)
 
         y_mean = np.sum(f['fit'])/len(f['fit'])
         ssr = np.sum((y_mean - f['fit'])**2)
         sst = np.sum((f[y] - f['fit'])**2)
         rsq = ssr / sst
 
-        print rsq
+        print(rsq)
 
     def plot_weekly(self):
         by_week = self.d.groupby(self.d.index.week).sum()
-        print by_week.describe()
+        print(by_week.describe())
         plt.figure()
-        by_week.boxplot(column=['Coffee', 'Tea', 'Alcohol', 'Sodas'])
-        plt.savefig('coffee-tea-alcohol-soda-weekly.png')
+        by_week.boxplot(column=['Coffee', 'Tea', 'Alcohol', 'Coke'])
+        plt.savefig('coffee-tea-alcohol-coke-weekly.png')
         plt.close()
 
     def plot(self):
@@ -162,8 +178,8 @@ class Analyze:
         plt.close()
 
         plt.figure()
-        self.d.boxplot(column=['Coffee', 'Tea', 'Alcohol', 'Sodas'])
-        plt.savefig('coffee-tea-alcohol-soda-daily.png')
+        self.d.boxplot(column=['Coffee', 'Tea', 'Alcohol', 'Coke'])
+        plt.savefig('coffee-tea-alcohol-coke-daily.png')
         plt.close()
 
         plt.figure()
@@ -180,16 +196,22 @@ class Analyze:
     def run(self):
         self.read_file()
 
-        print self.d
-        print self.d.describe()
+        print('Before column addition')
+        print(self.d)
+        print(self.d.describe())
 
         self.add_cols()
 
+        print('After column addition')
+        print(self.d)
+        print(self.d.describe())
+
+        print('Starting plots')
         self.plot()
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print 'Specify a filename'
+        print('Specify a filename')
         exit(1)
 
     fn = sys.argv[1]
