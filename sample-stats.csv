@@ -1,4 +1,4 @@
-Date,Bed,Wakeup,MoodMorning,MoodDay,MoodEvening,PhysicalMorning,PhysicalDay,PhysicalEvening,Food,Drinks,Coffee,Tea,Soda
-1/1/2015,2,10,Slightly congested,Slightly congested,Slightly congested,Lazy,Lazy,Alright,"- Bagel + cream cheese + lox #breakfast
-- Turkey sliders, salad #lunch
-- Salad, beans, chickpeas, corn turkey bacon, cheese #dinner",- 1 beer,1,1,
+Date,Bed,Wakeup,Feeling,Producivity,Food,Drinks,Notes,Time Slept
+2019-01-01,1/1/2019 5:03:14,1/1/2019 9:23:17,Good,,"- Egg, chicken #breakfast
+- Chili chicken, noodles, salad #lunch
+- Tortilla soup, pasta #dinner",- 2 coffee,,4.334166667
