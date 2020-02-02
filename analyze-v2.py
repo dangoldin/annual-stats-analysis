@@ -2,6 +2,8 @@
 
 import sys, re
 
+from collections import Counter
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -112,17 +114,19 @@ class Analyze:
         d = self.d
 
         # Strip out numbers and extra spaces
-        text = " ".join([" ".join(x) for x in d[column]]).lower().replace('.', ' ')
+        text = ", ".join([", ".join(x) for x in d[column]])
+        text = text.lower().replace('.', ' ')
         text = re.sub('\d+',' ',text)
         text = re.sub('\s+',' ',text)
 
-        text = " ".join(sorted(text.split(" ")))
+        freq = Counter(text.split(", "))
 
         wordcloud = wc.WordCloud(stopwords=None, mask=None,
             width=1000, height=1000, font_path=None,
             margin=10, relative_scaling=0.0,
             color_func=wc.random_color_func,
-            background_color='black').generate(text)
+            background_color='black')
+        wordcloud.generate_from_frequencies(freq)
         image = wordcloud.to_image()
         fn = ('wordcloud-' + column + '.png').lower()
         image.save(fn, format='png')
